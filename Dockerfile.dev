@@ -1,0 +1,21 @@
+# Invocation:
+#
+# docker build -t acme-dns:builder -f Dockerfile.dev .
+# docker run -it -e UID=$(id -u) -e GID=$(id -g) \
+#   -v `pwd`:/go/src/acme-dns -v `pwd`/.gopath/pkg:/go/pkg acme-dns:builder
+#
+FROM golang:alpine AS builder
+LABEL maintainer="wjdoekes+acme-dns@osso.nl"
+
+RUN apk add --update gcc musl-dev git su-exec
+
+RUN chown -R guest /go
+#USER guest
+WORKDIR /go/src/acme-dns
+CMD ["sh", "-xc", "\
+     if test -z \"${UID:-}\"; then echo need UID set; exit 1; fi; \
+     if test -z \"${GID:-}\"; then echo need GID set; exit 1; fi; \
+     sed -i -e \"s@^guest:.*@guest:x:${UID}:${GID}:Dev:/go/src/acme-dns:/bin/sh@\" /etc/passwd; \
+     sed -i -e \"s@^users:x:100:@users:x:${GID}:@\" /etc/group; \
+     find /go ! -user guest -exec chown guest: {} +; \
+     HOME=/go/src/acme-dns exec su -p guest"]

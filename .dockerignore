@@ -1,0 +1,10 @@
+Dockerfile
+.dockerignore
+.git
+acme-dns
+
+# For Dockerfile.dev
+Dockerfile.dev
+.ash_history
+.cache
+.gopath
