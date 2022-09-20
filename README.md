@@ -23,9 +23,20 @@ For longer explanation of the underlying issue and other proposed solutions, see
 - Rolling update of two TXT records to be able to answer to challenges for certificates that have both names: `yourdomain.tld` and `*.yourdomain.tld`, as both of the challenges point to the same subdomain.
 - Simple deployment (it's Go after all)
 
+## Features in OSSO's ossobv-readable-subdomains
+- Create a single account with a good password
+- Manually set subdomain in `records` to `*` to allow setting of all subdomains
+- Use this configuration: `CHALLENGE.your.tld NS ACMEDNS.your.tld` in static config
+- Then register SUBDOMAIN ("example.com") instead of GUID ("...") which gets tacked onto your hosted domain
+- Point peoples `_acme-challenge` to your domains:
+- `_acme-challenge.example.com CNAME example.com.CHALLENGE.your.tld`
+- `_acme-challenge.www.example.com CNAME www.example.com.CHALLENGE.your.tld`
+- You'll need a slightly adapted version of the `acme-dns-certbot`
+- Now you can manage multiple domains/subdomains easily
+
 ## Usage
 
-A client application for acme-dns with support for Certbot authentication hooks is available at: [https://github.com/acme-dns/acme-dns-client](https://github.com/acme-dns/acme-dns-client).
+A client application for acme-dns (Certbot authentication hook) for acme-dns is available at: `./acme-dns-auth-ossobv.py`
 
 [![asciicast](https://asciinema.org/a/94903.png)](https://asciinema.org/a/94903)
 

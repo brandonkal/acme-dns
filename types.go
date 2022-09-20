@@ -70,8 +70,10 @@ type acmedb struct {
 type database interface {
 	Init(string, string) error
 	Register(cidrslice) (ACMETxt, error)
+	RegisterCustomDomain(cidrslice, string) (ACMETxt, error)
 	GetByUsername(uuid.UUID) (ACMETxt, error)
 	GetTXTForDomain(string) ([]string, error)
+	UpdatePreCreate(ACMETxtPost) error
 	Update(ACMETxtPost) error
 	GetBackend() *sql.DB
 	SetBackend(*sql.DB)

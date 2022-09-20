@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"regexp"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -9,6 +11,11 @@ import (
 )
 
 func getValidUsername(u string) (uuid.UUID, error) {
+	// We're dealing with a DB that might be case sensitive. Don't parse
+	// uppercase as if it is valid
+	if strings.ToLower(u) != u {
+		return uuid.UUID{}, errors.New("need lowercase username")
+	}
 	uname, err := uuid.Parse(u)
 	if err != nil {
 		return uuid.UUID{}, err
@@ -26,9 +33,9 @@ func validKey(k string) bool {
 }
 
 func validSubdomain(s string) bool {
-	// URL safe base64 alphabet without padding as defined in ACME
-	RegExp := regexp.MustCompile("^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
-	return RegExp.MatchString(s)
+	// validate sane domain name part, like "com" or "a-b-c.com"
+	return regexp.MustCompile(`^([a-z0-9]([a-z0-9-]*[a-z0-9])?)([.][a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`).
+		MatchString(s)
 }
 
 func validTXT(s string) bool {

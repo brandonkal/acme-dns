@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -330,9 +331,19 @@ func TestApiManyUpdateWithCredentials(t *testing.T) {
 	defer server.Close()
 	e := getExpect(t, server)
 	// User without defined CIDR masks
-	newUser, err := DB.Register(cidrslice{})
-	if err != nil {
-		t.Errorf("Could not create new user, got error [%v]", err)
+	var newUser ACMETxt
+	var err error
+	for {
+		newUser, err = DB.Register(cidrslice{})
+		if err != nil {
+			t.Errorf("Could not create new user, got error [%v]", err)
+		}
+		// Ensure that username+password+subdomain all differ when in uppcase
+		if strings.ToUpper(newUser.Username.String()) != newUser.Username.String() &&
+			strings.ToUpper(newUser.Password) != newUser.Password &&
+			strings.ToUpper(newUser.Subdomain) != newUser.Subdomain {
+			break
+		}
 	}
 
 	// User with defined allow from - CIDR masks, all invalid
@@ -365,6 +376,10 @@ func TestApiManyUpdateWithCredentials(t *testing.T) {
 		{newUserWithCIDR.Username.String(), newUserWithCIDR.Password, newUserWithCIDR.Subdomain, validTxtData, 401},
 		{newUserWithValidCIDR.Username.String(), newUserWithValidCIDR.Password, newUserWithValidCIDR.Subdomain, validTxtData, 200},
 		{newUser.Username.String(), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", newUser.Subdomain, validTxtData, 401},
+		// Combinations of bad cAsE
+		{strings.ToUpper(newUser.Username.String()), newUser.Password, newUser.Subdomain, validTxtData, 401},
+		{newUser.Username.String(), strings.ToUpper(newUser.Password), newUser.Subdomain, validTxtData, 401},
+		{newUser.Username.String(), newUser.Password, strings.ToUpper(newUser.Subdomain), validTxtData, 401},
 	} {
 		updateJSON := map[string]interface{}{
 			"subdomain": test.subdomain,
@@ -429,6 +444,68 @@ func TestApiManyUpdateWithIpCheckHeaders(t *testing.T) {
 			Status(test.status)
 	}
 	Config.API.UseHeader = false
+}
+
+func TestApiManyUpdateCustomDomains(t *testing.T) {
+	// Enable logging?
+	// logger := log.New()
+	// logger.Formatter = &log.JSONFormatter{}
+	// log.SetOutput(logger.Writer())
+	// log.SetLevel(log.DebugLevel)
+	validTxtData := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+	router := setupRouter(true, false)
+	server := httptest.NewServer(router)
+	defer server.Close()
+	e := getExpect(t, server)
+
+	newUserAll, err := DB.RegisterCustomDomain(cidrslice{}, "*")
+	if err != nil {
+		t.Errorf("Could not create new user *, got error [%v]", err)
+	}
+	newUserExampleCom, err := DB.RegisterCustomDomain(cidrslice{}, "example.com")
+	if err != nil {
+		t.Errorf("Could not create new user example.com, got error [%v]", err)
+	}
+	newUserStarWhateverNl, err := DB.RegisterCustomDomain(cidrslice{}, "*.whatever.nl")
+	if err != nil {
+		t.Errorf("Could not create new user *.whatever.nl, got error [%v]", err)
+	}
+
+	for _, test := range []struct {
+		user      string
+		pass      string
+		subdomain string
+		txt       interface{}
+		status    int
+	}{
+		// * allows all, even domains with another owner (example.com)
+		{newUserAll.Username.String(), newUserAll.Password, "any-domain.nl", validTxtData, 200},
+		{newUserAll.Username.String(), newUserAll.Password, "201ca5d6-496d-11e9-8646-d663bd873d93", validTxtData, 200},
+		{newUserAll.Username.String(), newUserAll.Password, "example.com", validTxtData, 200},
+		// but invalid subdomains are not allowed, obviously
+		{newUserAll.Username.String(), newUserAll.Password, ".example.com", validTxtData, 400},
+		// example.com allows only exactly that
+		{newUserExampleCom.Username.String(), newUserExampleCom.Password, "example.com", validTxtData, 200},
+		{newUserExampleCom.Username.String(), newUserExampleCom.Password, "random-domain.com", validTxtData, 401},
+		{newUserExampleCom.Username.String(), newUserExampleCom.Password, "www.example.com", validTxtData, 401},
+		// *.whatever.nl allows all subdomains including the parent
+		{newUserStarWhateverNl.Username.String(), newUserStarWhateverNl.Password, "whatever.nl", validTxtData, 200},
+		{newUserStarWhateverNl.Username.String(), newUserStarWhateverNl.Password, "www.whatever.nl", validTxtData, 200},
+		{newUserStarWhateverNl.Username.String(), newUserStarWhateverNl.Password, "sitea.ams.whatever.nl", validTxtData, 200},
+		{newUserStarWhateverNl.Username.String(), newUserStarWhateverNl.Password, "example.com", validTxtData, 401},
+	} {
+		updateJSON := map[string]interface{}{
+			"subdomain": test.subdomain,
+			"txt":       test.txt}
+		e.POST("/update").
+			WithJSON(updateJSON).
+			WithHeader("X-Api-User", test.user).
+			WithHeader("X-Api-Key", test.pass).
+			WithHeader("X-Forwarded-For", "10.1.2.3").
+			Expect().
+			Status(test.status)
+	}
 }
 
 func TestApiHealthCheck(t *testing.T) {

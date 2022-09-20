@@ -105,7 +105,7 @@ func TestFileCheckPermissionDenied(t *testing.T) {
 	}
 	defer os.Remove(tmpfile.Name())
 	_ = syscall.Chmod(tmpfile.Name(), 0000)
-	if fileIsAccessible(tmpfile.Name()) {
+	if os.Getuid() != 0 && fileIsAccessible(tmpfile.Name()) {
 		t.Errorf("File should not be accessible")
 	}
 	_ = syscall.Chmod(tmpfile.Name(), 0644)

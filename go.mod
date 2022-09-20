@@ -1,4 +1,4 @@
-module github.com/joohoi/acme-dns
+module github.com/ossobv/acme-dns-with-subdomains
 
 go 1.16
 

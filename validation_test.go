@@ -9,20 +9,21 @@ import (
 func TestGetValidUsername(t *testing.T) {
 	v1, _ := uuid.Parse("a097455b-52cc-4569-90c8-7a4b97c6eba8")
 	for i, test := range []struct {
-		uname     string
-		output    uuid.UUID
-		shouldErr bool
+		uname  string
+		output uuid.UUID
+		valid  bool
 	}{
-		{"a097455b-52cc-4569-90c8-7a4b97c6eba8", v1, false},
-		{"a-97455b-52cc-4569-90c8-7a4b97c6eba8", uuid.UUID{}, true},
-		{"", uuid.UUID{}, true},
-		{"&!#!25123!%!'%", uuid.UUID{}, true},
+		{"a097455b-52cc-4569-90c8-7a4b97c6eba8", v1, true},
+		{"a-97455b-52cc-4569-90c8-7a4b97c6eba8", uuid.UUID{}, false},
+		{"a097455B-52cc-4569-90c8-7a4b97c6eba8", uuid.UUID{}, false}, // not lowercase
+		{"", uuid.UUID{}, false},
+		{"&!#!25123!%!'%", uuid.UUID{}, false},
 	} {
 		ret, err := getValidUsername(test.uname)
-		if test.shouldErr && err == nil {
+		if !test.valid && err == nil {
 			t.Errorf("Test %d: Expected error, but there was none", i)
 		}
-		if !test.shouldErr && err != nil {
+		if test.valid && err != nil {
 			t.Errorf("Test %d: Expected no error, but got [%v]", i, err)
 		}
 		if ret != test.output {
@@ -56,10 +57,23 @@ func TestGetValidSubdomain(t *testing.T) {
 	}{
 		{"a097455b-52cc-4569-90c8-7a4b97c6eba8", true},
 		{"a-97455b-52cc-4569-90c8-7a4b97c6eba8", true},
-		{"foo.example.com", false},
+		{"a097455B-52cc-4569-90c8-7a4b97c6eba8", false}, // not lowercase
+		//{"foo.example.com", false},
 		{"foo-example-com", true},
+		// Also valid are all other domain parts with [a-z0-9.-]
+		{"a-97455b-52cc-4569-90c8-7a4b97c6eba8", true},
+		{"subdomain", true},
+		{"even-full-tld.style", true},
+		{"and.with.5.parts.too", true},
+		// But it has to be lowercase
+		{"SUBDOMAIN", false},
+		{"even-Full-tld.style", false},
+		{"And.with.5.parts.too", false},
+		// And these are particularly invalid
 		{"", false},
 		{"&!#!25123!%!'%", false},
+		{"domain.", false},
+		{"double..period", false},
 	} {
 		ret := validSubdomain(test.subdomain)
 		if ret != test.output {
@@ -73,7 +87,7 @@ func TestValidTXT(t *testing.T) {
 		txt    string
 		output bool
 	}{
-		{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true},
+		{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true}, // 43 chars
 		{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false},
 		{"aaaaaaaaaaaaaaaaaaaaaaaaaaaa#aaaaaaaaaaaaaa", false},
 		{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false},
