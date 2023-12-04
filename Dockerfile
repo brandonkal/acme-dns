@@ -24,6 +24,8 @@ RUN fail=0; for x in *.go; do \
     test $fail -eq 0
 
 FROM alpine:latest
+LABEL description="acmedns, but with subdomains; manual build/push to harbor"
+LABEL dockerfile-vcs="https://github.com/ossobv/acme-dns-with-subdomains"
 
 WORKDIR /
 COPY --from=builder /go/src/acme-dns/acme-dns-with-subdomains /
