@@ -64,7 +64,7 @@ type logconfig struct {
 
 type acmedb struct {
 	Mutex sync.Mutex
-	DB *sql.DB
+	DB    *sql.DB
 }
 
 type database interface {
