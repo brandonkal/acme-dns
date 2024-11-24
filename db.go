@@ -25,7 +25,7 @@ var acmeTable = `
 		Value TEXT
 	);`
 
-var userTable = `
+var recordsTable = `
 	CREATE TABLE IF NOT EXISTS records(
         Username TEXT UNIQUE NOT NULL PRIMARY KEY,
         Password TEXT UNIQUE NOT NULL,
@@ -69,7 +69,7 @@ func (d *acmedb) Init(engine string, connection string) error {
 		versionString = "0"
 	}
 	_, _ = d.DB.Exec(acmeTable)
-	_, _ = d.DB.Exec(userTable)
+	_, _ = d.DB.Exec(recordsTable)
 	if Config.Database.Engine == "sqlite3" {
 		_, _ = d.DB.Exec(txtTable)
 	} else {
