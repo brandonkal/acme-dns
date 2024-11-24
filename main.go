@@ -90,7 +90,7 @@ func main() {
 	}
 
 	// HTTP API
-	go startHTTPAPI(errChan, Config, dnsservers)
+	go startHTTPAPI(errChan, dnsservers)
 
 	// block waiting for error
 	for {
@@ -101,7 +101,7 @@ func main() {
 	}
 }
 
-func startHTTPAPI(errChan chan error, config DNSConfig, dnsservers []*DNSServer) {
+func startHTTPAPI(errChan chan error, dnsservers []*DNSServer) {
 	// Setup http logger
 	logger := log.New()
 	logwriter := logger.Writer()

@@ -79,9 +79,7 @@ func (d *acmedb) Init(engine string, connection string) error {
 		_, _ = d.DB.Exec(txtTablePG)
 	}
 	// If everything is fine, handle db upgrade tasks
-	if err == nil {
-		err = d.checkDBUpgrades(versionString)
-	}
+	err = d.checkDBUpgrades(versionString)
 	if err == nil {
 		if versionString == "0" {
 			// No errors so we should now be in version 1

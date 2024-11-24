@@ -23,7 +23,7 @@ var records = []string{
 	"auth.example.org. A 192.168.1.100",
 	"ns1.auth.example.org. A 192.168.1.101",
 	"cn.example.org CNAME something.example.org.",
-	"!''b', unparseable ",
+	"!''b', unparsable ",
 	"ns2.auth.example.org. A 192.168.1.102",
 }
 

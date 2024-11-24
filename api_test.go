@@ -69,7 +69,7 @@ func setupRouter(debug bool, noauth bool) http.Handler {
 		AllowedOrigins:     Config.API.CorsOrigins,
 		AllowedMethods:     []string{"GET", "POST"},
 		OptionsPassthrough: false,
-		Debug:              Config.General.Debug,
+		Debug:              debug,
 	})
 	api.POST("/register", webRegisterPost)
 	api.GET("/health", healthCheck)
@@ -96,7 +96,7 @@ func TestApiRegister(t *testing.T) {
 		NotContainsKey("error")
 
 	allowfrom := map[string][]interface{}{
-		"allowfrom": []interface{}{"123.123.123.123/32",
+		"allowfrom": {"123.123.123.123/32",
 			"2001:db8:a0b:12f0::1/32",
 			"[::1]/64",
 		},
@@ -134,7 +134,7 @@ func TestApiRegisterBadAllowFrom(t *testing.T) {
 	for _, v := range invalidVals {
 
 		allowfrom := map[string][]interface{}{
-			"allowfrom": []interface{}{v}}
+			"allowfrom": {v}}
 
 		response := e.POST("/register").
 			WithJSON(allowfrom).

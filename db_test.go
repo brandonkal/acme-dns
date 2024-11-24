@@ -292,7 +292,6 @@ func TestUpdate(t *testing.T) {
 
 	validTXT := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-	regUser.Password = "nevergonnagiveyouup"
 	regUser.Value = validTXT
 
 	err = DB.Update(regUser.ACMETxtPost)
