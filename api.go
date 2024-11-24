@@ -91,8 +91,14 @@ func webUpdatePost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 		updStatus = http.StatusBadRequest
 		upd = jsonError("bad_txt")
 	} else if validSubdomain(a.Subdomain) && validTXT(a.Value) {
-		err := DB.Update(a.ACMETxtPost)
+		// Make sure the records exist (needed for non-Registered subdomains)
+		err := DB.UpdatePreCreate(a.ACMETxtPost)
 		if err != nil {
+			log.WithFields(log.Fields{"error": err.Error()}).Debug("Error while trying to precreate records")
+			updStatus = http.StatusInternalServerError
+			upd = jsonError("db_error")
+		} else if err := DB.Update(a.ACMETxtPost); err != nil {
+			// ^-- if they exist, update
 			log.WithFields(log.Fields{"error": err.Error()}).Debug("Error while trying to update record")
 			updStatus = http.StatusInternalServerError
 			upd = jsonError("db_error")

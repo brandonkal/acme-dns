@@ -166,7 +166,7 @@ func (d *DNSServer) answeringForDomain(name string) bool {
 
 // hasTxtForDomain checks if we have txt records for a domain
 func (d *DNSServer) hasTxtForDomain(q dns.Question) bool {
-	subdomain := sanitizeDomainQuestion(q.Name)
+	subdomain := d.extractSubdomain(q.Name)
 	txts, err := d.DB.GetTXTForDomain(subdomain)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Debug("Error while trying to get record")
@@ -205,6 +205,18 @@ func (d *DNSServer) isOwnChallenge(name string) bool {
 	return false
 }
 
+// Check all our domains, and see if this is a subdomain. If so, return
+// the subdomain part.
+func (d *DNSServer) extractSubdomain(name string) string {
+	domainParts := strings.Split(name, ".")
+	for i := range domainParts {
+		if d.answeringForDomain(strings.Join(domainParts[i:], ".")) {
+			return strings.Join(domainParts[0:i], ".")
+		}
+	}
+	return "*" // invalid
+}
+
 func (d *DNSServer) answer(q dns.Question, remoteAddr net.Addr) ([]dns.RR, int, bool, error) {
 	var rcode int
 	var err error
@@ -234,7 +246,7 @@ func (d *DNSServer) answer(q dns.Question, remoteAddr net.Addr) ([]dns.RR, int, 
 
 func (d *DNSServer) answerTXT(q dns.Question) ([]dns.RR, error) {
 	var ra []dns.RR
-	subdomain := sanitizeDomainQuestion(q.Name)
+	subdomain := d.extractSubdomain(q.Name)
 	atxt, err := d.DB.GetTXTForDomain(subdomain)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Debug("Error while trying to get record")
